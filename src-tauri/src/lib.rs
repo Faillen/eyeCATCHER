@@ -219,8 +219,8 @@ async fn open_blur_overlay(app: AppHandle) -> Result<(), String> {
         window.close().ok();
     }
 
-    // Create fullscreen, always-on-top, undecorated window for the blur overlay
-    WebviewWindowBuilder::new(
+    // Create fullscreen, always-on-top, undecorated, transparent window for the blur overlay
+    let _blur_window = WebviewWindowBuilder::new(
         &app,
         "blur-overlay",
         WebviewUrl::App("blur.html".into()),
@@ -231,8 +231,18 @@ async fn open_blur_overlay(app: AppHandle) -> Result<(), String> {
     .decorations(false)
     .skip_taskbar(true)
     .focused(true)
+    .transparent(true)
     .build()
     .map_err(|e| e.to_string())?;
+
+    // Apply platform-specific blur effect to the window
+    #[cfg(target_os = "windows")]
+    {
+        use window_vibrancy::apply_blur;
+        apply_blur(&_blur_window, Some((18, 18, 18, 200)))
+            .map_err(|e| format!("Failed to apply blur: {:?}", e))
+            .ok(); // Don't fail if blur isn't supported, fall back to semi-transparent bg
+    }
 
     Ok(())
 }
