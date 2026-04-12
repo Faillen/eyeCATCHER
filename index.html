@@ -4,40 +4,148 @@
     <meta charset="UTF-8" />
     <link rel="stylesheet" href="/src/styles.css" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Tauri App</title>
+    <title>eyeCATCHER</title>
     <script type="module" src="/src/main.ts" defer></script>
   </head>
 
   <body>
-    <main class="container">
-      <h1>Welcome to Tauri</h1>
-
-      <div class="row">
-        <a href="https://vite.dev" target="_blank">
-          <img src="/src/assets/vite.svg" class="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img
-            src="/src/assets/tauri.svg"
-            class="logo tauri"
-            alt="Tauri logo"
-          />
-        </a>
-        <a href="https://www.typescriptlang.org/docs" target="_blank">
-          <img
-            src="/src/assets/typescript.svg"
-            class="logo typescript"
-            alt="typescript logo"
-          />
-        </a>
+    <!-- Splash Screen -->
+    <div id="splash-screen" class="screen active">
+      <div class="splash-content">
+        <div class="splash-waves top-waves">
+          <svg viewBox="0 0 400 80" xmlns="http://www.w3.org/2000/svg">
+            <path d="M0,20 Q50,0 100,20 T200,20 T300,20 T400,20" stroke="#b8954a" stroke-width="1.5" fill="none" opacity="0.3"/>
+            <path d="M0,35 Q50,15 100,35 T200,35 T300,35 T400,35" stroke="#b8954a" stroke-width="1.5" fill="none" opacity="0.25"/>
+            <path d="M0,50 Q50,30 100,50 T200,50 T300,50 T400,50" stroke="#b8954a" stroke-width="1.5" fill="none" opacity="0.2"/>
+            <path d="M0,65 Q50,45 100,65 T200,65 T300,65 T400,65" stroke="#b8954a" stroke-width="1.5" fill="none" opacity="0.15"/>
+          </svg>
+        </div>
+        <div class="splash-logo">
+          <h1 class="app-title">eyeCATCHER</h1>
+          <p class="app-subtitle">a persistent 20-20-20<br/>eye tracker</p>
+        </div>
+        <div class="splash-waves bottom-waves">
+          <svg viewBox="0 0 400 80" xmlns="http://www.w3.org/2000/svg">
+            <path d="M0,15 Q50,35 100,15 T200,15 T300,15 T400,15" stroke="#b8954a" stroke-width="1.5" fill="none" opacity="0.15"/>
+            <path d="M0,30 Q50,50 100,30 T200,30 T300,30 T400,30" stroke="#b8954a" stroke-width="1.5" fill="none" opacity="0.2"/>
+            <path d="M0,45 Q50,65 100,45 T200,45 T300,45 T400,45" stroke="#b8954a" stroke-width="1.5" fill="none" opacity="0.25"/>
+            <path d="M0,60 Q50,80 100,60 T200,60 T300,60 T400,60" stroke="#b8954a" stroke-width="1.5" fill="none" opacity="0.3"/>
+          </svg>
+        </div>
+        <button id="continue-btn" class="continue-btn">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M6 15L12 9L18 15" stroke="#b8954a" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <span>click to continue</span>
+        </button>
       </div>
-      <p>Click on the Tauri logo to learn more about the framework</p>
+    </div>
 
-      <form class="row" id="greet-form">
-        <input id="greet-input" placeholder="Enter a name..." />
-        <button type="submit">Greet</button>
-      </form>
-      <p id="greet-msg"></p>
-    </main>
+    <!-- Timer Screen -->
+    <div id="timer-screen" class="screen">
+      <div class="timer-content">
+        <div class="timer-header">
+          <h1 class="app-title small">eyeCATCHER</h1>
+          <p class="app-subtitle small">a persistent 20-20-20<br/>eye tracker</p>
+        </div>
+
+        <!-- Idle state: show start button -->
+        <div id="timer-idle" class="timer-state">
+          <div class="countdown-display">
+            <span id="countdown-number">20</span>
+          </div>
+          <button id="start-timer-btn" class="start-btn">
+            <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="40" cy="40" r="38" stroke="#b8954a" stroke-width="2" fill="none"/>
+              <polygon points="32,24 58,40 32,56" fill="#1a1a1a"/>
+            </svg>
+            <span class="start-label">start timer</span>
+          </button>
+        </div>
+
+        <!-- Running state: show timeline -->
+        <div id="timer-running" class="timer-state hidden">
+          <div class="timeline-container">
+            <div class="timeline-line"></div>
+            <div id="timeline-hours" class="timeline-hours"></div>
+            <div id="timer-current-time" class="timer-current-time"></div>
+          </div>
+          <div class="timer-status">
+            <span id="timer-minutes-left" class="timer-minutes-left">20:00</span>
+            <span id="timer-status-text" class="timer-status-text">running</span>
+          </div>
+        </div>
+
+        <div class="timer-bottom-actions">
+          <button id="terminate-btn" class="action-btn hidden" title="Terminate">
+            <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+              <line x1="7" y1="7" x2="21" y2="21" stroke="#b8954a" stroke-width="2" stroke-linecap="round"/>
+              <line x1="21" y1="7" x2="7" y2="21" stroke="#b8954a" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            <span>terminate</span>
+          </button>
+        </div>
+
+        <button id="go-stats-btn" class="nav-btn">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <circle cx="10" cy="10" r="8" stroke="#b8954a" stroke-width="1.5" fill="none"/>
+            <circle cx="10" cy="10" r="3" fill="#b8954a"/>
+          </svg>
+          <span>view stats</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Statistics Screen -->
+    <div id="stats-screen" class="screen">
+      <div class="stats-content">
+        <div class="stats-tabs">
+          <button id="tab-weekly" class="tab-btn active">&lt; Weekly</button>
+          <button id="tab-monthly" class="tab-btn">Monthly &gt;</button>
+        </div>
+        <h2 class="stats-title">Todays Record</h2>
+        <div class="stats-grid">
+          <div class="stat-item">
+            <span class="stat-label"># of SuccessfulSessions</span>
+            <span id="stat-successful" class="stat-value">0</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label"># of terminations</span>
+            <span id="stat-terminations" class="stat-value">0</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">#oftimespaused</span>
+            <span id="stat-paused" class="stat-value">0</span>
+          </div>
+        </div>
+
+        <button id="go-timer-btn" class="nav-btn bottom-nav">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <circle cx="10" cy="10" r="8" stroke="#b8954a" stroke-width="1.5" fill="none"/>
+            <circle cx="10" cy="10" r="3" fill="#b8954a"/>
+          </svg>
+          <span>return to timer</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Blur Overlay (Gaussian Blur intervention) -->
+    <div id="blur-overlay" class="blur-overlay hidden">
+      <div class="blur-overlay-content">
+        <h2>Look away for 20 seconds</h2>
+        <div class="blur-countdown">
+          <span id="blur-countdown-number">20</span>
+        </div>
+        <p>Rest your eyes by looking at something 20 feet away</p>
+      </div>
+    </div>
+
+    <!-- 2-minute warning notification -->
+    <div id="alert-notification" class="alert-notification hidden">
+      <div class="alert-content">
+        <span class="alert-icon">&#9200;</span>
+        <span class="alert-text">2 minutes left before eye break!</span>
+      </div>
+    </div>
   </body>
 </html>
