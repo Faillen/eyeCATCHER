@@ -74,10 +74,7 @@ function renderMinuteScroll(): void {
     container.appendChild(item);
   }
 
-  // Animate the scroll position based on seconds within the current minute
-  // As seconds count down, the list shifts upward
-  const secondFraction = (60 - currentSecond) / 60;
-  container.style.transform = `translateY(${-secondFraction * 80}px)`;
+  // No continuous animation — minutes snap into place only when the minute changes
 }
 
 // ===== Timer Logic =====
