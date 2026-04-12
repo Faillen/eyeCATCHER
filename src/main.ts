@@ -17,7 +17,6 @@ interface TimerState {
 
 // ===== State =====
 let timerInterval: ReturnType<typeof setInterval> | null = null;
-let blurInterval: ReturnType<typeof setInterval> | null = null;
 let alertTimeout: ReturnType<typeof setTimeout> | null = null;
 let timerState: TimerState = {
   is_running: false,
@@ -25,14 +24,13 @@ let timerState: TimerState = {
   elapsed_seconds: 0,
   pause_count: 0,
 };
-let blurCountdown = 20;
 let has18MinAlertShown = false;
 
 // ===== Constants =====
 const TIMER_DURATION_SECONDS = 20 * 60; // 20 minutes
 const ALERT_AT_SECONDS = 18 * 60; // 18 minutes (2 min warning)
-const BLUR_DURATION_SECONDS = 20; // 20 seconds blur overlay
 // Idle threshold handled by Rust backend (2 minutes)
+// Blur duration is configured in src/blur.ts (20 seconds)
 
 // ===== DOM Elements =====
 function getEl(id: string): HTMLElement {
@@ -179,40 +177,22 @@ function triggerBlurOverlay(): void {
     timerInterval = null;
   }
 
-  blurCountdown = BLUR_DURATION_SECONDS;
-  getEl("blur-countdown-number").textContent = String(blurCountdown);
-  getEl("blur-overlay").classList.remove("hidden");
-
   // Hide alert if visible
   getEl("alert-notification").classList.add("hidden");
 
-  blurInterval = setInterval(() => {
-    blurCountdown--;
-    getEl("blur-countdown-number").textContent = String(blurCountdown);
-
-    if (blurCountdown <= 0) {
-      clearBlurOverlay(true);
-    }
-  }, 1000);
+  // Open fullscreen blur overlay window (covers entire desktop)
+  invoke("open_blur_overlay").catch(console.error);
 }
 
-function clearBlurOverlay(success: boolean): void {
-  if (blurInterval) {
-    clearInterval(blurInterval);
-    blurInterval = null;
-  }
-
-  getEl("blur-overlay").classList.add("hidden");
-
-  // Save session
+function onBlurComplete(): void {
+  // Save session as successful
   invoke("save_session", {
-    successful: success,
+    successful: true,
     pauses: timerState.pause_count,
   }).catch(console.error);
 
-  // Reset and restart
+  // Reset and restart for next cycle
   resetTimerUI();
-  // Auto-restart timer for next cycle
   startTimer();
 }
 
@@ -301,6 +281,11 @@ async function setupBackendListeners(): Promise<void> {
     if (timerState.is_running && timerState.is_paused) {
       resumeTimer();
     }
+  });
+
+  // Listen for blur overlay completion (fullscreen window closed)
+  await listen("blur-complete", () => {
+    onBlurComplete();
   });
 }
 
