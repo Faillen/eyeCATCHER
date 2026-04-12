@@ -17,7 +17,6 @@ interface TimerState {
 
 // ===== State =====
 let timerInterval: ReturnType<typeof setInterval> | null = null;
-let blurInterval: ReturnType<typeof setInterval> | null = null;
 let alertTimeout: ReturnType<typeof setTimeout> | null = null;
 let timerState: TimerState = {
   is_running: false,
@@ -25,14 +24,14 @@ let timerState: TimerState = {
   elapsed_seconds: 0,
   pause_count: 0,
 };
-let blurCountdown = 20;
 let has18MinAlertShown = false;
+let currentStatsPeriod = "today";
 
 // ===== Constants =====
 const TIMER_DURATION_SECONDS = 20 * 60; // 20 minutes
 const ALERT_AT_SECONDS = 18 * 60; // 18 minutes (2 min warning)
-const BLUR_DURATION_SECONDS = 20; // 20 seconds blur overlay
 // Idle threshold handled by Rust backend (2 minutes)
+// Blur duration is configured in src/blur.ts (20 seconds)
 
 // ===== DOM Elements =====
 function getEl(id: string): HTMLElement {
@@ -179,40 +178,22 @@ function triggerBlurOverlay(): void {
     timerInterval = null;
   }
 
-  blurCountdown = BLUR_DURATION_SECONDS;
-  getEl("blur-countdown-number").textContent = String(blurCountdown);
-  getEl("blur-overlay").classList.remove("hidden");
-
   // Hide alert if visible
   getEl("alert-notification").classList.add("hidden");
 
-  blurInterval = setInterval(() => {
-    blurCountdown--;
-    getEl("blur-countdown-number").textContent = String(blurCountdown);
-
-    if (blurCountdown <= 0) {
-      clearBlurOverlay(true);
-    }
-  }, 1000);
+  // Open fullscreen blur overlay window (covers entire desktop)
+  invoke("open_blur_overlay").catch(console.error);
 }
 
-function clearBlurOverlay(success: boolean): void {
-  if (blurInterval) {
-    clearInterval(blurInterval);
-    blurInterval = null;
-  }
-
-  getEl("blur-overlay").classList.add("hidden");
-
-  // Save session
+function onBlurComplete(): void {
+  // Save session as successful
   invoke("save_session", {
-    successful: success,
+    successful: true,
     pauses: timerState.pause_count,
   }).catch(console.error);
 
-  // Reset and restart
+  // Reset and restart for next cycle
   resetTimerUI();
-  // Auto-restart timer for next cycle
   startTimer();
 }
 
@@ -268,6 +249,32 @@ function resumeTimer(): void {
 }
 
 // ===== Statistics =====
+function switchStats(period: string): void {
+  currentStatsPeriod = period;
+  loadStats(period);
+  updateStatsTabs();
+}
+
+function updateStatsTabs(): void {
+  const leftBtn = getEl("tab-left");
+  const rightBtn = getEl("tab-right");
+
+  switch (currentStatsPeriod) {
+    case "today":
+      leftBtn.innerHTML = "&lt; Weekly";
+      rightBtn.innerHTML = "Monthly &gt;";
+      break;
+    case "weekly":
+      leftBtn.innerHTML = "&lt; Daily";
+      rightBtn.innerHTML = "Monthly &gt;";
+      break;
+    case "monthly":
+      leftBtn.innerHTML = "&lt; Weekly";
+      rightBtn.innerHTML = "Daily &gt;";
+      break;
+  }
+}
+
 async function loadStats(period: string): Promise<void> {
   try {
     const stats: SessionStats = await invoke("get_stats", { period });
@@ -302,6 +309,11 @@ async function setupBackendListeners(): Promise<void> {
       resumeTimer();
     }
   });
+
+  // Listen for blur overlay completion (fullscreen window closed)
+  await listen("blur-complete", () => {
+    onBlurComplete();
+  });
 }
 
 // ===== Initialization =====
@@ -323,7 +335,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
   // Navigation
   getEl("go-stats-btn").addEventListener("click", () => {
-    loadStats("today");
+    switchStats("today");
     showScreen("stats-screen");
   });
 
@@ -331,17 +343,21 @@ window.addEventListener("DOMContentLoaded", () => {
     showScreen("timer-screen");
   });
 
-  // Stats tabs
-  getEl("tab-weekly").addEventListener("click", () => {
-    getEl("tab-weekly").classList.add("active");
-    getEl("tab-monthly").classList.remove("active");
-    loadStats("weekly");
+  // Stats tabs - dynamic navigation between daily/weekly/monthly
+  getEl("tab-left").addEventListener("click", () => {
+    switch (currentStatsPeriod) {
+      case "today": switchStats("weekly"); break;
+      case "weekly": switchStats("today"); break;
+      case "monthly": switchStats("weekly"); break;
+    }
   });
 
-  getEl("tab-monthly").addEventListener("click", () => {
-    getEl("tab-monthly").classList.add("active");
-    getEl("tab-weekly").classList.remove("active");
-    loadStats("monthly");
+  getEl("tab-right").addEventListener("click", () => {
+    switch (currentStatsPeriod) {
+      case "today": switchStats("monthly"); break;
+      case "weekly": switchStats("monthly"); break;
+      case "monthly": switchStats("today"); break;
+    }
   });
 
   // Setup backend listeners

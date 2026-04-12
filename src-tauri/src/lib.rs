@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
 use std::sync::Mutex;
-use tauri::{AppHandle, Emitter, State};
+use tauri::{AppHandle, Emitter, Manager, State, WebviewUrl, WebviewWindowBuilder};
 
 // ===== Data Structures =====
 
@@ -212,6 +212,41 @@ fn send_notification(title: String, body: String, app: AppHandle) {
         .ok();
 }
 
+#[tauri::command]
+async fn open_blur_overlay(app: AppHandle) -> Result<(), String> {
+    // Close existing blur window if it's still open
+    if let Some(window) = app.get_webview_window("blur-overlay") {
+        window.close().ok();
+    }
+
+    // Create fullscreen, always-on-top, undecorated window for the blur overlay
+    WebviewWindowBuilder::new(
+        &app,
+        "blur-overlay",
+        WebviewUrl::App("blur.html".into()),
+    )
+    .title("eyeCATCHER - Break")
+    .fullscreen(true)
+    .always_on_top(true)
+    .decorations(false)
+    .skip_taskbar(true)
+    .focused(true)
+    .build()
+    .map_err(|e| e.to_string())?;
+
+    Ok(())
+}
+
+#[tauri::command]
+async fn close_blur_overlay(app: AppHandle) -> Result<(), String> {
+    if let Some(window) = app.get_webview_window("blur-overlay") {
+        window.close().map_err(|e| e.to_string())?;
+    }
+    // Notify main window that the blur overlay is complete
+    app.emit("blur-complete", ()).ok();
+    Ok(())
+}
+
 // ===== Idle Monitor Background Thread =====
 
 fn start_idle_monitor(app: AppHandle, state_mutex: std::sync::Arc<Mutex<AppState>>) {
@@ -267,6 +302,8 @@ pub fn run() {
             save_session,
             get_stats,
             send_notification,
+            open_blur_overlay,
+            close_blur_overlay,
         ])
         .setup(move |app| {
             let handle = app.handle().clone();
