@@ -44,10 +44,6 @@
     <!-- Timer Screen -->
     <div id="timer-screen" class="screen">
       <div class="timer-content">
-        <div class="timer-header">
-          <h1 class="app-title small">eyeCATCHER</h1>
-          <p class="app-subtitle small">a persistent 20-20-20<br/>eye tracker</p>
-        </div>
 
         <!-- Idle state: show start button -->
         <div id="timer-idle" class="timer-state">
@@ -63,16 +59,13 @@
           </button>
         </div>
 
-        <!-- Running state: show timeline -->
+        <!-- Running state: scrolling minute timeline -->
         <div id="timer-running" class="timer-state hidden">
-          <div class="timeline-container">
-            <div class="timeline-line"></div>
-            <div id="timeline-hours" class="timeline-hours"></div>
-            <div id="timer-current-time" class="timer-current-time"></div>
-          </div>
-          <div class="timer-status">
-            <span id="timer-minutes-left" class="timer-minutes-left">20:00</span>
-            <span id="timer-status-text" class="timer-status-text">running</span>
+          <div class="minute-scroll-container">
+            <div class="minute-scroll-track">
+              <div class="minute-dots"></div>
+              <div id="minute-scroll-list" class="minute-scroll-list"></div>
+            </div>
           </div>
         </div>
 
@@ -140,12 +133,5 @@
       </div>
     </div>
 
-    <!-- 2-minute warning notification -->
-    <div id="alert-notification" class="alert-notification hidden">
-      <div class="alert-content">
-        <span class="alert-icon">&#9200;</span>
-        <span class="alert-text">2 minutes left before eye break!</span>
-      </div>
-    </div>
   </body>
 </html>

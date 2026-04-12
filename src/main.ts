@@ -17,7 +17,6 @@ interface TimerState {
 
 // ===== State =====
 let timerInterval: ReturnType<typeof setInterval> | null = null;
-let alertTimeout: ReturnType<typeof setTimeout> | null = null;
 let timerState: TimerState = {
   is_running: false,
   is_paused: false,
@@ -46,53 +45,42 @@ function showScreen(screenId: string): void {
   getEl(screenId).classList.add("active");
 }
 
-// ===== Timeline Rendering =====
-function renderTimeline(): void {
-  const container = getEl("timeline-hours");
+// ===== Minute Scroll Rendering =====
+function renderMinuteScroll(): void {
+  const container = getEl("minute-scroll-list");
   container.innerHTML = "";
 
-  const now = new Date();
-  const currentHour = now.getHours();
-  const currentMinute = now.getMinutes();
+  const remaining = TIMER_DURATION_SECONDS - timerState.elapsed_seconds;
+  const displayTime = Math.max(0, remaining);
+  const currentMinute = Math.floor(displayTime / 60);
+  const currentSecond = displayTime % 60;
 
-  // Show 5 hours around current time
-  const hours = [];
+  // Show 5 minute entries centered on current minute
   for (let i = -2; i <= 2; i++) {
-    hours.push((currentHour + i + 24) % 24);
-  }
+    const minute = currentMinute + i;
+    if (minute < 0) continue;
 
-  hours.forEach((hour, index) => {
-    const yPercent = (index / (hours.length - 1)) * 100;
-    const isCurrent = hour === currentHour;
-
-    // Dot
-    const dot = document.createElement("div");
-    dot.className = `timeline-dot${isCurrent ? " current" : ""}`;
-    dot.style.top = `${yPercent}%`;
-    container.appendChild(dot);
-
-    // Label
-    const label = document.createElement("div");
-    label.className = `timeline-hour${isCurrent ? " current" : ""}`;
-    label.style.top = `${yPercent}%`;
-    label.style.transform = `translateX(20px) translateY(-50%)`;
+    const item = document.createElement("div");
+    const isCurrent = i === 0;
 
     if (isCurrent) {
-      label.innerHTML = `${hour}<span class="minute-suffix">${currentMinute.toString().padStart(2, "0")}</span>`;
+      item.className = "minute-item current";
+      item.innerHTML = `<span class="minute-number">${minute}</span><span class="second-number">${currentSecond.toString().padStart(2, "0")}</span>`;
     } else {
-      label.textContent = `${hour}`;
+      item.className = "minute-item";
+      item.textContent = `${minute}`;
     }
-    container.appendChild(label);
-  });
+
+    container.appendChild(item);
+  }
+
+  // Animate the scroll position based on seconds within the current minute
+  // As seconds count down, the list shifts upward
+  const secondFraction = (60 - currentSecond) / 60;
+  container.style.transform = `translateY(${-secondFraction * 80}px)`;
 }
 
 // ===== Timer Logic =====
-function formatTime(totalSeconds: number): string {
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
-}
-
 function startTimer(): void {
   timerState = {
     is_running: true,
@@ -107,7 +95,7 @@ function startTimer(): void {
   getEl("timer-running").classList.remove("hidden");
   getEl("terminate-btn").classList.remove("hidden");
 
-  renderTimeline();
+  renderMinuteScroll();
   updateTimerDisplay();
 
   // Notify Rust backend
@@ -124,21 +112,7 @@ function startTimer(): void {
 }
 
 function updateTimerDisplay(): void {
-  const remaining = TIMER_DURATION_SECONDS - timerState.elapsed_seconds;
-  const displayTime = Math.max(0, remaining);
-  getEl("timer-minutes-left").textContent = formatTime(displayTime);
-
-  const statusText = getEl("timer-status-text");
-  if (timerState.is_paused) {
-    statusText.textContent = "paused (idle)";
-    statusText.classList.add("paused");
-  } else {
-    statusText.textContent = "running";
-    statusText.classList.remove("paused");
-  }
-
-  // Update timeline
-  renderTimeline();
+  renderMinuteScroll();
 }
 
 function checkTimerMilestones(): void {
@@ -155,20 +129,11 @@ function checkTimerMilestones(): void {
 }
 
 function showAlertNotification(): void {
-  const alert = getEl("alert-notification");
-  alert.classList.remove("hidden");
-
-  // Also trigger system notification via Rust
+  // Only trigger system notification via Rust (no in-app notification)
   invoke("send_notification", {
     title: "eyeCATCHER",
     body: "2 minutes left before eye break!",
   }).catch(console.error);
-
-  // Auto-hide after 8 seconds
-  if (alertTimeout) clearTimeout(alertTimeout);
-  alertTimeout = setTimeout(() => {
-    alert.classList.add("hidden");
-  }, 8000);
 }
 
 function triggerBlurOverlay(): void {
@@ -177,9 +142,6 @@ function triggerBlurOverlay(): void {
     clearInterval(timerInterval);
     timerInterval = null;
   }
-
-  // Hide alert if visible
-  getEl("alert-notification").classList.add("hidden");
 
   // Open fullscreen blur overlay window (covers entire desktop)
   invoke("open_blur_overlay").catch(console.error);
@@ -220,7 +182,6 @@ function resetTimerUI(): void {
   getEl("timer-idle").classList.remove("hidden");
   getEl("timer-running").classList.add("hidden");
   getEl("terminate-btn").classList.add("hidden");
-  getEl("alert-notification").classList.add("hidden");
 
   timerState = {
     is_running: false,
