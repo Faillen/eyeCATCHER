@@ -4,6 +4,7 @@ use std::fs;
 use std::path::PathBuf;
 use std::sync::Mutex;
 use tauri::{AppHandle, Emitter, Manager, State, WebviewUrl, WebviewWindowBuilder};
+use tauri::webview::Color;
 
 // ===== Data Structures =====
 
@@ -232,6 +233,7 @@ async fn open_blur_overlay(app: AppHandle) -> Result<(), String> {
     .skip_taskbar(true)
     .focused(true)
     .transparent(true)
+    .background_color(Color(15, 15, 15, 200))
     .build()
     .map_err(|e| e.to_string())?;
 
