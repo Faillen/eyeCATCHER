@@ -1,7 +1,8 @@
 import { invoke } from "@tauri-apps/api/core";
 
-// Must match BLUR_DURATION_SECONDS in main.ts
-const BLUR_DURATION_SECONDS = 20;
+// Read break duration from localStorage (set by main window before opening overlay)
+const storedDuration = localStorage.getItem("eyecatcher_break_duration");
+const BLUR_DURATION_SECONDS = storedDuration ? parseInt(storedDuration) : 20;
 
 window.addEventListener("DOMContentLoaded", () => {
   let countdown = BLUR_DURATION_SECONDS;
@@ -10,13 +11,25 @@ window.addEventListener("DOMContentLoaded", () => {
 
   countdownEl.textContent = String(countdown);
 
+  // Display eye care tip if available
+  const tipTitle = localStorage.getItem("eyecatcher_break_tip_title");
+  const tipDesc = localStorage.getItem("eyecatcher_break_tip_desc");
+  const tipTitleEl = document.getElementById("blur-tip-title");
+  const tipDescEl = document.getElementById("blur-tip-desc");
+  const tipContainer = document.getElementById("blur-tip-container");
+
+  if (tipTitle && tipDesc && tipTitleEl && tipDescEl && tipContainer) {
+    tipTitleEl.textContent = tipTitle;
+    tipDescEl.textContent = tipDesc;
+    tipContainer.style.display = "block";
+  }
+
   const interval = setInterval(() => {
     countdown--;
     countdownEl.textContent = String(countdown);
 
     if (countdown <= 0) {
       clearInterval(interval);
-      // Close this fullscreen window and notify the main window
       invoke("close_blur_overlay").catch(console.error);
     }
   }, 1000);
