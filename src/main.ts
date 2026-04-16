@@ -617,20 +617,32 @@ async function setupBackendListeners(): Promise<void> {
 
 // ===== Initialization =====
 window.addEventListener("DOMContentLoaded", async () => {
-  const user = await getCurrentUser();
+  // Always register the continue button handler first so it works
+  // even if Supabase is unreachable or throws an error
+  getEl("continue-btn").addEventListener("click", () => {
+    showScreen("auth-screen");
+  });
+
+  let user = null;
+  try {
+    user = await getCurrentUser();
+  } catch (e) {
+    console.error("Failed to check auth status:", e);
+  }
+
   if (user) {
     currentUserId = user.id;
-    currentProfile = await getProfile(user.id);
+    try {
+      currentProfile = await getProfile(user.id);
+    } catch (e) {
+      console.error("Failed to load profile:", e);
+    }
     if (currentProfile) {
       await loadUserSettings();
       showScreen("timer-screen");
     } else {
       showScreen("profile-setup-screen");
     }
-  } else {
-    getEl("continue-btn").addEventListener("click", () => {
-      showScreen("auth-screen");
-    });
   }
 
   getEl("auth-signup-btn").addEventListener("click", handleSignUp);
@@ -646,7 +658,7 @@ window.addEventListener("DOMContentLoaded", async () => {
       nameGroup.classList.add("hidden");
       signUpBtn.classList.add("hidden");
       signInBtn.classList.remove("hidden");
-      toggleText.textContent = "Don\u0027t have an account? Sign Up";
+      toggleText.textContent = "Don't have an account? Sign Up";
     } else {
       nameGroup.classList.remove("hidden");
       signUpBtn.classList.remove("hidden");
@@ -705,7 +717,7 @@ window.addEventListener("DOMContentLoaded", async () => {
   getElSafe("admin-add-tip-btn")?.addEventListener("click", handleAddTip);
   getElSafe("admin-back-btn")?.addEventListener("click", () => { showScreen("timer-screen"); });
 
-  setupBackendListeners();
+  setupBackendListeners().catch((e) => console.error("Backend listeners failed:", e));
 
   const reportActivity = () => { invoke("report_activity").catch(() => {}); };
   document.addEventListener("mousemove", reportActivity);
