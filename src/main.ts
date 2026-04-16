@@ -236,13 +236,13 @@ function startScreenTimeTracking(): void {
   }, 1000);
 }
 
-function stopScreenTimeTracking(): void {
+async function stopScreenTimeTracking(): Promise<void> {
   if (screenTimeInterval) {
     clearInterval(screenTimeInterval);
     screenTimeInterval = null;
   }
   if (currentUserId && screenTimeAccumulator > 0) {
-    updateScreenTime(currentUserId, screenTimeAccumulator, false);
+    await updateScreenTime(currentUserId, screenTimeAccumulator, false);
     screenTimeAccumulator = 0;
   }
 }
@@ -311,8 +311,8 @@ function updateTimerDisplay(): void {
 }
 
 function checkTimerMilestones(): void {
-  const alertAt = TIMER_DURATION_SECONDS - WARNING_BEFORE_SECONDS;
-  if (timerState.elapsed_seconds >= alertAt && !hasWarningShown) {
+  const alertAt = Math.max(0, TIMER_DURATION_SECONDS - WARNING_BEFORE_SECONDS);
+  if (alertAt > 0 && timerState.elapsed_seconds >= alertAt && !hasWarningShown) {
     hasWarningShown = true;
     showAlertNotification();
   }
@@ -331,10 +331,10 @@ function showAlertNotification(): void {
 
 async function triggerBlurOverlay(): Promise<void> {
   if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
-  stopScreenTimeTracking();
+  await stopScreenTimeTracking();
 
   if (currentUserId) {
-    updateScreenTime(currentUserId, 0, true);
+    await updateScreenTime(currentUserId, 0, true);
   }
 
   // Get a random tip and store it for the blur overlay to use
@@ -459,6 +459,16 @@ async function loadStats(period: string): Promise<void> {
   }
 }
 
+// ===== HTML Escaping =====
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 // ===== Admin Panel =====
 function handleAdminAccess(): void {
   adminClickCount++;
@@ -481,12 +491,12 @@ async function loadAdminPanel(): Promise<void> {
   for (const p of profiles) {
     const row = document.createElement("div");
     row.className = "admin-row";
-    const nameText = p.display_name || "N/A";
+    const nameText = escapeHtml(p.display_name || "N/A");
     const userSelected = p.role === "user" ? "selected" : "";
     const adminSelected = p.role === "admin" ? "selected" : "";
     row.innerHTML = '<span class="admin-row-name">' + nameText + "</span>" +
-      '<span class="admin-row-meta">' + p.work_type + " | " + p.role + "</span>" +
-      '<select class="admin-role-select" data-uid="' + p.id + '">' +
+      '<span class="admin-row-meta">' + escapeHtml(p.work_type) + " | " + escapeHtml(p.role) + "</span>" +
+      '<select class="admin-role-select" data-uid="' + escapeHtml(p.id) + '">' +
       '<option value="user" ' + userSelected + ">User</option>" +
       '<option value="admin" ' + adminSelected + ">Admin</option>" +
       "</select>";
@@ -534,13 +544,13 @@ async function loadAdminTips(): Promise<void> {
     row.className = "admin-tip-row";
     const toggleLabel = tip.is_active ? "Deactivate" : "Activate";
     row.innerHTML = '<div class="admin-tip-info">' +
-      "<strong>" + tip.title + "</strong>" +
-      '<span class="admin-tip-cat">' + tip.category + "</span>" +
-      "<p>" + tip.description + "</p>" +
+      "<strong>" + escapeHtml(tip.title) + "</strong>" +
+      '<span class="admin-tip-cat">' + escapeHtml(tip.category) + "</span>" +
+      "<p>" + escapeHtml(tip.description) + "</p>" +
       "</div>" +
       '<div class="admin-tip-actions">' +
-      '<button class="admin-tip-toggle" data-id="' + tip.id + '" data-active="' + tip.is_active + '">' + toggleLabel + "</button>" +
-      '<button class="admin-tip-delete" data-id="' + tip.id + '">Delete</button>' +
+      '<button class="admin-tip-toggle" data-id="' + escapeHtml(tip.id) + '" data-active="' + tip.is_active + '">' + toggleLabel + "</button>" +
+      '<button class="admin-tip-delete" data-id="' + escapeHtml(tip.id) + '">Delete</button>' +
       "</div>";
     tipsListEl.appendChild(row);
   }
@@ -646,7 +656,7 @@ window.addEventListener("DOMContentLoaded", async () => {
       nameGroup.classList.add("hidden");
       signUpBtn.classList.add("hidden");
       signInBtn.classList.remove("hidden");
-      toggleText.textContent = "Don\u0027t have an account? Sign Up";
+      toggleText.textContent = "Don't have an account? Sign Up";
     } else {
       nameGroup.classList.remove("hidden");
       signUpBtn.classList.remove("hidden");

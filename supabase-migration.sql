@@ -57,6 +57,21 @@ CREATE TABLE IF NOT EXISTS system_config (
 );
 
 -- =============================================
+-- Helper function to check admin role (SECURITY DEFINER bypasses RLS)
+-- This prevents infinite recursion when admin policies query profiles
+-- =============================================
+
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS BOOLEAN AS $$
+DECLARE
+  user_role TEXT;
+BEGIN
+  SELECT role INTO user_role FROM public.profiles WHERE id = auth.uid();
+  RETURN user_role = 'admin';
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER STABLE;
+
+-- =============================================
 -- Row Level Security (RLS)
 -- =============================================
 
@@ -77,45 +92,38 @@ CREATE POLICY "Users can insert own profile" ON profiles
   FOR INSERT WITH CHECK (auth.uid() = id);
 
 CREATE POLICY "Admins can view all profiles" ON profiles
-  FOR SELECT USING (
-    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
-  );
+  FOR SELECT USING (public.is_admin());
+
+CREATE POLICY "Admins can update all profiles" ON profiles
+  FOR UPDATE USING (public.is_admin());
 
 -- Sessions: users can CRUD their own; admins can read all
 CREATE POLICY "Users can manage own sessions" ON sessions
   FOR ALL USING (auth.uid() = user_id);
 
 CREATE POLICY "Admins can view all sessions" ON sessions
-  FOR SELECT USING (
-    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
-  );
+  FOR SELECT USING (public.is_admin());
 
 -- Screen time logs: users can CRUD their own; admins can read all
 CREATE POLICY "Users can manage own screen time" ON screen_time_logs
   FOR ALL USING (auth.uid() = user_id);
 
 CREATE POLICY "Admins can view all screen time" ON screen_time_logs
-  FOR SELECT USING (
-    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
-  );
+  FOR SELECT USING (public.is_admin());
 
 -- Eye care tips: everyone can read active tips; admins can CRUD
 CREATE POLICY "Anyone can read active tips" ON eye_care_tips
   FOR SELECT USING (is_active = true);
 
 CREATE POLICY "Admins can manage tips" ON eye_care_tips
-  FOR ALL USING (
-    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
-  );
+  FOR ALL USING (public.is_admin());
 
 -- System config: everyone can read; admins can write
 CREATE POLICY "Anyone can read config" ON system_config
   FOR SELECT USING (true);
 
 CREATE POLICY "Admins can manage config" ON system_config
-  FOR ALL USING (
-    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
-  );
+  FOR ALL USING (public.is_admin());
 
 -- =============================================
 -- Auto-create profile on user signup
@@ -134,6 +142,29 @@ DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- =============================================
+-- Prevent non-admin role escalation
+-- Users cannot change their own role via client-side updates
+-- =============================================
+
+CREATE OR REPLACE FUNCTION public.protect_role_column()
+RETURNS TRIGGER AS $$
+DECLARE
+  caller_role TEXT;
+BEGIN
+  SELECT role INTO caller_role FROM public.profiles WHERE id = auth.uid();
+  IF OLD.role IS DISTINCT FROM NEW.role AND (caller_role IS NULL OR caller_role != 'admin') THEN
+    NEW.role := OLD.role;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS protect_role_on_update ON profiles;
+CREATE TRIGGER protect_role_on_update
+  BEFORE UPDATE ON profiles
+  FOR EACH ROW EXECUTE FUNCTION public.protect_role_column();
 
 -- =============================================
 -- Seed default eye care tips
