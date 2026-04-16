@@ -41,9 +41,71 @@
       </div>
     </div>
 
+    <!-- Auth Screen (Login / Register) -->
+    <div id="auth-screen" class="screen">
+      <div class="auth-content">
+        <h1 class="app-title small">eyeCATCHER</h1>
+        <p class="app-subtitle small">Sign in to continue</p>
+
+        <div class="auth-form">
+          <div id="auth-name-group" class="form-group">
+            <label for="auth-name">Display Name</label>
+            <input type="text" id="auth-name" placeholder="Your name" autocomplete="name" />
+          </div>
+          <div class="form-group">
+            <label for="auth-email">Email</label>
+            <input type="email" id="auth-email" placeholder="you@example.com" autocomplete="email" />
+          </div>
+          <div class="form-group">
+            <label for="auth-password">Password</label>
+            <input type="password" id="auth-password" placeholder="Min 6 characters" autocomplete="current-password" />
+          </div>
+
+          <div id="auth-error" class="auth-error hidden"></div>
+
+          <button id="auth-signup-btn" class="primary-btn">Sign Up</button>
+          <button id="auth-signin-btn" class="primary-btn hidden">Sign In</button>
+
+          <p id="auth-toggle-mode" class="auth-toggle">Already have an account? Sign In</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Profile Setup Screen -->
+    <div id="profile-setup-screen" class="screen">
+      <div class="auth-content">
+        <h1 class="app-title small">eyeCATCHER</h1>
+        <p class="app-subtitle small">Set up your profile</p>
+
+        <div class="auth-form">
+          <div class="form-group">
+            <label for="profile-age">Age</label>
+            <input type="number" id="profile-age" placeholder="25" min="1" max="120" />
+          </div>
+          <div class="form-group">
+            <label for="profile-screen-hours">Daily Screen Hours</label>
+            <input type="number" id="profile-screen-hours" placeholder="8" min="1" max="24" step="0.5" />
+          </div>
+          <div class="form-group">
+            <label for="profile-work-type">Work Type</label>
+            <select id="profile-work-type">
+              <option value="student">Student</option>
+              <option value="office_worker">Office Worker</option>
+              <option value="general" selected>General</option>
+            </select>
+          </div>
+
+          <div id="profile-error" class="auth-error hidden"></div>
+
+          <button id="profile-save-btn" class="primary-btn">Continue</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Timer Screen -->
     <div id="timer-screen" class="screen">
       <div class="timer-content">
+        <h2 id="timer-app-title" class="timer-title">eyeCATCHER</h2>
 
         <!-- Idle state: show start button -->
         <div id="timer-idle" class="timer-state">
@@ -79,13 +141,24 @@
           </button>
         </div>
 
-        <button id="go-stats-btn" class="nav-btn">
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-            <circle cx="10" cy="10" r="8" stroke="#b8954a" stroke-width="1.5" fill="none"/>
-            <circle cx="10" cy="10" r="3" fill="#b8954a"/>
-          </svg>
-          <span>view stats</span>
-        </button>
+        <div class="timer-nav-row">
+          <button id="go-stats-btn" class="nav-btn">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <circle cx="10" cy="10" r="8" stroke="#b8954a" stroke-width="1.5" fill="none"/>
+              <circle cx="10" cy="10" r="3" fill="#b8954a"/>
+            </svg>
+            <span>stats</span>
+          </button>
+          <button id="go-settings-btn" class="nav-btn">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <circle cx="10" cy="10" r="7" stroke="#b8954a" stroke-width="1.5" fill="none"/>
+              <circle cx="10" cy="10" r="2" fill="#b8954a"/>
+              <line x1="10" y1="1" x2="10" y2="4" stroke="#b8954a" stroke-width="1.5"/>
+              <line x1="10" y1="16" x2="10" y2="19" stroke="#b8954a" stroke-width="1.5"/>
+            </svg>
+            <span>settings</span>
+          </button>
+        </div>
       </div>
     </div>
 
@@ -99,16 +172,24 @@
         <h2 class="stats-title">Todays Record</h2>
         <div class="stats-grid">
           <div class="stat-item">
-            <span class="stat-label"># of SuccessfulSessions</span>
+            <span class="stat-label"># of Successful Sessions</span>
             <span id="stat-successful" class="stat-value">0</span>
           </div>
           <div class="stat-item">
-            <span class="stat-label"># of terminations</span>
+            <span class="stat-label"># of Terminations</span>
             <span id="stat-terminations" class="stat-value">0</span>
           </div>
           <div class="stat-item">
-            <span class="stat-label">#oftimespaused</span>
+            <span class="stat-label"># of Times Paused</span>
             <span id="stat-paused" class="stat-value">0</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Total Screen Time</span>
+            <span id="stat-screen-time" class="stat-value">0h 0m</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Breaks Taken</span>
+            <span id="stat-breaks-taken" class="stat-value">0</span>
           </div>
         </div>
 
@@ -122,14 +203,152 @@
       </div>
     </div>
 
-    <!-- Blur Overlay (Gaussian Blur intervention) -->
-    <div id="blur-overlay" class="blur-overlay hidden">
-      <div class="blur-overlay-content">
-        <h2>Look away for 20 seconds</h2>
-        <div class="blur-countdown">
-          <span id="blur-countdown-number">20</span>
+    <!-- Settings Screen -->
+    <div id="settings-screen" class="screen">
+      <div class="settings-content">
+        <h2 class="settings-title">Settings</h2>
+
+        <div class="settings-form">
+          <div class="form-group">
+            <label for="settings-name">Display Name</label>
+            <input type="text" id="settings-name" />
+          </div>
+          <div class="form-group">
+            <label for="settings-age">Age</label>
+            <input type="number" id="settings-age" min="1" max="120" />
+          </div>
+          <div class="form-group">
+            <label for="settings-screen-hours">Daily Screen Hours</label>
+            <input type="number" id="settings-screen-hours" min="1" max="24" step="0.5" />
+          </div>
+          <div class="form-group">
+            <label for="settings-work-type">Work Type</label>
+            <select id="settings-work-type">
+              <option value="student">Student</option>
+              <option value="office_worker">Office Worker</option>
+              <option value="general">General</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="settings-break-interval">Break Interval (minutes)</label>
+            <input type="number" id="settings-break-interval" min="5" max="120" />
+          </div>
+          <div class="form-group">
+            <label for="settings-break-duration">Break Duration (seconds)</label>
+            <input type="number" id="settings-break-duration" min="5" max="300" />
+          </div>
+          <div class="form-group">
+            <label for="settings-notification-mode">Notification Mode</label>
+            <select id="settings-notification-mode">
+              <option value="light">Light (minimal)</option>
+              <option value="moderate">Moderate (standard)</option>
+              <option value="strict">Strict (aggressive)</option>
+            </select>
+          </div>
+
+          <button id="settings-save-btn" class="primary-btn">Save Settings</button>
+          <p id="settings-saved-msg" class="success-msg hidden">Settings saved!</p>
         </div>
-        <p>Rest your eyes by looking at something 20 feet away</p>
+
+        <div class="settings-actions">
+          <button id="settings-back-btn" class="nav-btn">Back to Timer</button>
+          <button id="settings-logout-btn" class="nav-btn danger">Log Out</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Admin Screen (Hidden - accessible via 5x rapid click on title) -->
+    <div id="admin-screen" class="screen">
+      <div class="admin-content">
+        <h2 class="admin-title">Admin Panel</h2>
+
+        <div class="admin-tabs">
+          <button class="admin-tab-btn active" data-admin-tab="admin-users-tab">Users</button>
+          <button class="admin-tab-btn" data-admin-tab="admin-analytics-tab">Analytics</button>
+          <button class="admin-tab-btn" data-admin-tab="admin-config-tab">Config</button>
+          <button class="admin-tab-btn" data-admin-tab="admin-tips-tab">Tips</button>
+        </div>
+
+        <!-- Users Tab -->
+        <div id="admin-users-tab" class="admin-tab-content">
+          <h3>User Management</h3>
+          <div id="admin-user-list" class="admin-list"></div>
+        </div>
+
+        <!-- Analytics Tab -->
+        <div id="admin-analytics-tab" class="admin-tab-content hidden">
+          <h3>Usage Analytics</h3>
+          <div class="analytics-grid">
+            <div class="analytics-card">
+              <span class="analytics-label">Total Users</span>
+              <span id="analytics-total-users" class="analytics-value">0</span>
+            </div>
+            <div class="analytics-card">
+              <span class="analytics-label">Total Sessions</span>
+              <span id="analytics-total-sessions" class="analytics-value">0</span>
+            </div>
+            <div class="analytics-card">
+              <span class="analytics-label">Success Rate</span>
+              <span id="analytics-success-rate" class="analytics-value">0%</span>
+            </div>
+            <div class="analytics-card">
+              <span class="analytics-label">Total Screen Time</span>
+              <span id="analytics-total-screen-hours" class="analytics-value">0h</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Config Tab -->
+        <div id="admin-config-tab" class="admin-tab-content hidden">
+          <h3>Alert System Configuration</h3>
+          <div class="admin-form">
+            <div class="form-group">
+              <label for="admin-break-interval">Default Break Interval (min)</label>
+              <input type="number" id="admin-break-interval" min="5" max="120" />
+            </div>
+            <div class="form-group">
+              <label for="admin-break-duration">Default Break Duration (sec)</label>
+              <input type="number" id="admin-break-duration" min="5" max="300" />
+            </div>
+            <div class="form-group">
+              <label for="admin-notification-mode">Default Notification Mode</label>
+              <select id="admin-notification-mode">
+                <option value="light">Light</option>
+                <option value="moderate">Moderate</option>
+                <option value="strict">Strict</option>
+              </select>
+            </div>
+            <button id="admin-config-save-btn" class="primary-btn">Save Config</button>
+            <p id="admin-config-saved" class="success-msg hidden">Config saved!</p>
+          </div>
+        </div>
+
+        <!-- Tips Tab -->
+        <div id="admin-tips-tab" class="admin-tab-content hidden">
+          <h3>Eye Care Tips Management</h3>
+          <div class="admin-add-tip">
+            <div class="form-group">
+              <label for="new-tip-title">Title</label>
+              <input type="text" id="new-tip-title" placeholder="Tip title" />
+            </div>
+            <div class="form-group">
+              <label for="new-tip-desc">Description</label>
+              <textarea id="new-tip-desc" placeholder="Tip description" rows="3"></textarea>
+            </div>
+            <div class="form-group">
+              <label for="new-tip-category">Category</label>
+              <select id="new-tip-category">
+                <option value="exercise">Exercise</option>
+                <option value="tip">Tip</option>
+                <option value="reminder">Reminder</option>
+              </select>
+            </div>
+            <button id="admin-add-tip-btn" class="primary-btn">Add Tip</button>
+          </div>
+          <div id="admin-tips-list" class="admin-list"></div>
+        </div>
+
+        <button id="admin-back-btn" class="nav-btn bottom-nav">Back to Timer</button>
       </div>
     </div>
 
