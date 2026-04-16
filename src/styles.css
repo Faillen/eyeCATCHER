@@ -42,7 +42,7 @@
   --gold-light: var(--accent-light);
   --gold-dark: var(--accent-dark);
   --wave-color: #658eff;
-  --start-btn-fill: #f5f5f5;
+  --start-btn-fill: #658eff;
 }
 
 * {
@@ -72,6 +72,22 @@ body {
 
 [data-theme="light"] body {
   background-image: none;
+  position: relative;
+}
+
+[data-theme="light"] body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 200%;
+  height: 200%;
+  background: url('./assets/grid-bg.png') repeat;
+  background-size: 525px auto;
+  filter: invert(1) hue-rotate(200deg) brightness(1.6) opacity(0.12);
+  animation: bgScroll 60s linear infinite;
+  pointer-events: none;
+  z-index: -1;
 }
 
 @keyframes bgScroll {
