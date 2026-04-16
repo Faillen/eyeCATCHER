@@ -57,6 +57,21 @@ CREATE TABLE IF NOT EXISTS system_config (
 );
 
 -- =============================================
+-- Helper function to check admin role (SECURITY DEFINER bypasses RLS)
+-- This prevents infinite recursion when admin policies query profiles
+-- =============================================
+
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS BOOLEAN AS $$
+DECLARE
+  user_role TEXT;
+BEGIN
+  SELECT role INTO user_role FROM public.profiles WHERE id = auth.uid();
+  RETURN user_role = 'admin';
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER STABLE;
+
+-- =============================================
 -- Row Level Security (RLS)
 -- =============================================
 
@@ -77,45 +92,35 @@ CREATE POLICY "Users can insert own profile" ON profiles
   FOR INSERT WITH CHECK (auth.uid() = id);
 
 CREATE POLICY "Admins can view all profiles" ON profiles
-  FOR SELECT USING (
-    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
-  );
+  FOR SELECT USING (public.is_admin());
 
 -- Sessions: users can CRUD their own; admins can read all
 CREATE POLICY "Users can manage own sessions" ON sessions
   FOR ALL USING (auth.uid() = user_id);
 
 CREATE POLICY "Admins can view all sessions" ON sessions
-  FOR SELECT USING (
-    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
-  );
+  FOR SELECT USING (public.is_admin());
 
 -- Screen time logs: users can CRUD their own; admins can read all
 CREATE POLICY "Users can manage own screen time" ON screen_time_logs
   FOR ALL USING (auth.uid() = user_id);
 
 CREATE POLICY "Admins can view all screen time" ON screen_time_logs
-  FOR SELECT USING (
-    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
-  );
+  FOR SELECT USING (public.is_admin());
 
 -- Eye care tips: everyone can read active tips; admins can CRUD
 CREATE POLICY "Anyone can read active tips" ON eye_care_tips
   FOR SELECT USING (is_active = true);
 
 CREATE POLICY "Admins can manage tips" ON eye_care_tips
-  FOR ALL USING (
-    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
-  );
+  FOR ALL USING (public.is_admin());
 
 -- System config: everyone can read; admins can write
 CREATE POLICY "Anyone can read config" ON system_config
   FOR SELECT USING (true);
 
 CREATE POLICY "Admins can manage config" ON system_config
-  FOR ALL USING (
-    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
-  );
+  FOR ALL USING (public.is_admin());
 
 -- =============================================
 -- Auto-create profile on user signup
