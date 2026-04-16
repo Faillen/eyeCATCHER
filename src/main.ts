@@ -627,9 +627,33 @@ async function setupBackendListeners(): Promise<void> {
 
 // ===== Initialization =====
 window.addEventListener("DOMContentLoaded", async () => {
-  // Always register the continue button handler first so it works
-  // even if Supabase is unreachable or throws an error
-  getEl("continue-btn").addEventListener("click", () => {
+  // Register splash screen auth buttons before any async calls
+  // so they always work even if Supabase is unreachable
+  getEl("splash-login-btn").addEventListener("click", () => {
+    // Switch to sign-in mode and show auth screen
+    const nameGroup = getEl("auth-name-group");
+    const signUpBtn = getEl("auth-signup-btn");
+    const signInBtn = getEl("auth-signin-btn");
+    const toggleText = getEl("auth-toggle-mode");
+    nameGroup.classList.add("hidden");
+    signUpBtn.classList.add("hidden");
+    signInBtn.classList.remove("hidden");
+    toggleText.textContent = "Don't have an account? Sign Up";
+    hideAuthError();
+    showScreen("auth-screen");
+  });
+
+  getEl("splash-signup-btn").addEventListener("click", () => {
+    // Switch to sign-up mode and show auth screen
+    const nameGroup = getEl("auth-name-group");
+    const signUpBtn = getEl("auth-signup-btn");
+    const signInBtn = getEl("auth-signin-btn");
+    const toggleText = getEl("auth-toggle-mode");
+    nameGroup.classList.remove("hidden");
+    signUpBtn.classList.remove("hidden");
+    signInBtn.classList.add("hidden");
+    toggleText.textContent = "Already have an account? Sign In";
+    hideAuthError();
     showScreen("auth-screen");
   });
 
@@ -726,6 +750,14 @@ window.addEventListener("DOMContentLoaded", async () => {
   getElSafe("admin-config-save-btn")?.addEventListener("click", handleAdminConfigSave);
   getElSafe("admin-add-tip-btn")?.addEventListener("click", handleAddTip);
   getElSafe("admin-back-btn")?.addEventListener("click", () => { showScreen("timer-screen"); });
+
+  // Theme toggle
+  getEl("theme-toggle-btn").addEventListener("click", () => {
+    const current = document.documentElement.getAttribute("data-theme") || "dark";
+    const next = current === "dark" ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", next);
+    localStorage.setItem("eyecatcher-theme", next);
+  });
 
   setupBackendListeners().catch((e) => console.error("Backend listeners failed:", e));
 
